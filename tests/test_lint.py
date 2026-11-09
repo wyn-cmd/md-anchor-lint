@@ -124,6 +124,40 @@ class LinkTests(Fixture):
         self.build({"README.md": "Read the [guide][g].\n\n[g]: docs/nope.md\n"})
         self.assertEqual(self.run_linter().problems[0]["kind"], "missing-file")
 
+    def test_percent_encoded_path_is_resolved(self):
+        # GitHub writes relative links with spaces percent-encoded
+        self.build(
+            {
+                "README.md": "See [the guide](docs/my%20guide.md).\n",
+                "docs/my guide.md": "# Guide\n",
+            }
+        )
+        self.assertEqual(self.run_linter().problems, [])
+
+    def test_angle_brackets_allow_spaces_in_path(self):
+        self.build(
+            {
+                "README.md": "See [the guide](<docs/my guide.md>).\n",
+                "docs/my guide.md": "# Guide\n",
+            }
+        )
+        linter = self.run_linter()
+        self.assertEqual(linter.problems, [])
+        self.assertEqual(linter.link_count, 1)
+
+    def test_query_string_is_not_part_of_the_path(self):
+        self.build(
+            {
+                "README.md": "See [the guide](docs/guide.md?plain=1).\n",
+                "docs/guide.md": "# Guide\n",
+            }
+        )
+        self.assertEqual(self.run_linter().problems, [])
+
+    def test_link_to_suffixed_duplicate_heading_resolves(self):
+        self.build({"README.md": "# Notes\n\n## Notes\n\nJump to [the second](#notes-1)\n"})
+        self.assertEqual(self.run_linter().problems, [])
+
     def test_case_mismatch_is_only_a_warning(self):
         self.build({"README.md": "See [guide](Docs/Guide.md).\n", "docs/guide.md": "# Guide\n"})
         linter = self.run_linter()

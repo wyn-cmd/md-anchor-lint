@@ -38,6 +38,8 @@ def build_parser():
 
 
 def human_report(linter):
+    if not linter.problems and not linter.warnings:
+        return "No problems or warnings found."
     grouped = {}
     for item in linter.problems + linter.warnings:
         grouped.setdefault(item["file"], []).append(item)
